@@ -1,72 +1,64 @@
 package user
 
 import (
-	"database/sql"
-	"log"
-	"time"
+	"github.com/krissukoco/go-event-ticket/internal/models"
+	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 type Repository interface {
-	GetById(id string) (*User, error)
-	GetByUsername(username string) (*User, error)
-	Insert(id, username, password, name, location string) (*User, error)
+	GetById(id string) (*models.User, error)
+	GetByUsername(username string) (*models.User, error)
+	Insert(username, password, name, location string) (*models.User, error)
 }
 
 type repository struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
-func now() int64 {
-	return time.Now().UnixMilli()
+func newUserId() string {
+	return "u_" + ulid.Make().String()
 }
 
-func NewRepository(db *sql.DB) Repository {
+func NewRepository(db *gorm.DB) Repository {
+	db.AutoMigrate(&models.User{})
+
 	return &repository{db}
 }
 
-func (r *repository) GetById(id string) (*User, error) {
-	log.Println("GetById", id)
-	var u User
-	res := r.db.QueryRow("SELECT id, username, password, name, image, location, created_at, updated_at"+
-		" FROM users WHERE id = $1", id)
-	err := res.Scan(&u.Id, &u.Username, &u.Password, &u.Name, &u.Image, &u.Location, &u.CreatedAt, &u.UpdatedAt)
+func (r *repository) GetById(id string) (*models.User, error) {
+	var u models.User
+	err := r.db.Where("id = ?", id).First(&u).Error
 	if err != nil {
 		return nil, err
 	}
 	return &u, nil
 }
 
-func (r *repository) GetByUsername(username string) (*User, error) {
-	var u User
-	res := r.db.QueryRow("SELECT id, username, password, name, image, location, created_at, updated_at"+
-		" FROM users WHERE username = $1", username)
-	err := res.Scan(&u.Id, &u.Username, &u.Password, &u.Name, &u.Image, &u.Location, &u.CreatedAt, &u.UpdatedAt)
+func (r *repository) GetByUsername(username string) (*models.User, error) {
+	var u models.User
+	err := r.db.Where("username = ?", username).First(&u).Error
 	if err != nil {
-		log.Println(err)
 		return nil, err
 	}
 	return &u, nil
 }
 
-func (r *repository) Insert(id, username, password, name, location string) (*User, error) {
-	ts := now()
-
-	_, err := r.db.Exec("INSERT INTO users(id, username, password, name, image, location, created_at, updated_at)"+
-		" VALUES($1, $2, $3, $4, $5, $6, $7, $8) RETURNING (id, username, password, name, image, location, created_at, updated_at)",
-		id, username, password, name, "", location, ts, ts)
-
-	if err != nil {
-		return nil, err
+func (r *repository) Insert(username, password, name, location string) (*models.User, error) {
+	id := newUserId()
+	user := &models.User{
+		Id:       id,
+		Username: username,
+		Password: password,
+		Name:     name,
+		Image:    "",
+		Location: location,
 	}
 
-	return &User{
-		Id:        id,
-		Username:  username,
-		Password:  password,
-		Name:      name,
-		Image:     "",
-		Location:  location,
-		CreatedAt: ts,
-		UpdatedAt: ts,
-	}, nil
+	tx := r.db.Create(user)
+	if tx.Error != nil {
+		return nil, tx.Error
+	}
+
+	return r.GetById(id)
 }

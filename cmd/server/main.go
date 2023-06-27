@@ -7,13 +7,15 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/krissukoco/go-event-ticket/config"
 	"github.com/krissukoco/go-event-ticket/internal/auth"
 	"github.com/krissukoco/go-event-ticket/internal/database"
 	"github.com/krissukoco/go-event-ticket/internal/user"
 )
 
 const (
-	defaultPort = 8080
+	defaultPort   = 8080
+	defaultJwtExp = 24 * 30
 )
 
 type Server struct {
@@ -41,22 +43,27 @@ func getJwtSecret() (string, error) {
 	return secret, nil
 }
 
-func migrateDb(db *sql.DB) error {
-	return user.Migrate(db)
-}
-
 func main() {
-	router := gin.Default()
-	port := getPort()
-
-	// Database
-	db, err := database.NewPostgresDefault()
+	// Load config
+	env := os.Getenv("ENV")
+	if env == "" {
+		env = "local"
+	}
+	cfg, err := config.Load(env)
 	if err != nil {
 		panic(err)
 	}
-	if err = migrateDb(db); err != nil {
+	dbc := cfg.Database
+
+	// Database
+	db, err := database.NewPostgresGorm(dbc.Host, dbc.User, dbc.Password, dbc.DbName, dbc.Port, dbc.EnableSsl)
+	if err != nil {
 		panic(err)
 	}
+
+	// Server & Routers
+	router := gin.Default()
+	port := getPort()
 
 	v1 := router.Group("/api/v1")
 
@@ -64,14 +71,9 @@ func main() {
 	userService := user.NewService(user.NewRepository(db))
 
 	// Auth routes
-	{
-		secret, err := getJwtSecret()
-		if err != nil {
-			panic(err)
-		}
-		service := auth.NewService(userService, secret, 24*30)
-		auth.RegisterHandlers(v1.Group("/auth"), service, auth.AuthMiddleware(service.UserIdFromToken))
-	}
+	authService := auth.NewService(userService, cfg.JwtSecret, defaultJwtExp)
+	authMiddleware := auth.AuthMiddleware(authService.UserIdFromToken)
+	auth.RegisterHandlers(v1.Group("/auth"), authService, authMiddleware)
 	// User routes
 	{
 		user.RegisterHandlers(v1.Group("/users"), userService)

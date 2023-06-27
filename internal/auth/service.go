@@ -7,6 +7,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/krissukoco/go-event-ticket/internal/models"
 	"github.com/krissukoco/go-event-ticket/internal/user"
 )
 
@@ -23,8 +24,8 @@ const (
 )
 
 type loginData struct {
-	User  *user.User `json:"user"`
-	Token string     `json:"token"`
+	User  *models.User `json:"user"`
+	Token string       `json:"token"`
 }
 
 type registerData struct {
@@ -37,7 +38,7 @@ type registerData struct {
 type Service interface {
 	Login(ctx context.Context, username, password string) (*loginData, error)
 	Register(ctx context.Context, in *registerData) (string, error)
-	Account(ctx context.Context, userId string) (*user.User, error)
+	Account(ctx context.Context, userId string) (*models.User, error)
 	UserIdFromToken(token string) (string, error)
 }
 
@@ -151,7 +152,7 @@ func (s *service) Register(ctx context.Context, in *registerData) (string, error
 	return user.Id, nil
 }
 
-func (s *service) Account(ctx context.Context, userId string) (*user.User, error) {
+func (s *service) Account(ctx context.Context, userId string) (*models.User, error) {
 	user, err := s.userService.GetById(userId)
 	if err != nil {
 		return nil, err

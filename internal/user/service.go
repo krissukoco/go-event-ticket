@@ -4,16 +4,16 @@ import (
 	"errors"
 
 	"github.com/gin-gonic/gin"
-	"github.com/oklog/ulid/v2"
+	"github.com/krissukoco/go-event-ticket/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type Service interface {
-	GetById(id string) (*User, error)
-	GetByUsername(username string) (*User, error)
+	GetById(id string) (*models.User, error)
+	GetByUsername(username string) (*models.User, error)
 	ComparePassword(hashedPassword, password string) error
 	HashPassword(password string) (string, error)
-	Insert(username string, password string, name string, location string) (*User, error)
+	Insert(username string, password string, name string, location string) (*models.User, error)
 }
 
 var (
@@ -41,19 +41,15 @@ func getUser(svc Service) gin.HandlerFunc {
 	}
 }
 
-func newUserId() string {
-	return "u_" + ulid.Make().String()
-}
-
 func NewService(repo Repository) Service {
 	return &service{repo}
 }
 
-func (s *service) GetById(id string) (*User, error) {
+func (s *service) GetById(id string) (*models.User, error) {
 	return s.repo.GetById(id)
 }
 
-func (s *service) GetByUsername(username string) (*User, error) {
+func (s *service) GetByUsername(username string) (*models.User, error) {
 	return s.repo.GetByUsername(username)
 }
 
@@ -76,7 +72,7 @@ func (s *service) validatePassword(pass string) error {
 	return nil
 }
 
-func (s *service) Insert(username, password, name, location string) (*User, error) {
+func (s *service) Insert(username, password, name, location string) (*models.User, error) {
 	// Check username already exists
 	_, err := s.GetByUsername(username)
 	if err == nil {
@@ -93,7 +89,7 @@ func (s *service) Insert(username, password, name, location string) (*User, erro
 		return nil, err
 	}
 
-	user, err := s.repo.Insert(newUserId(), username, hashedPassword, name, location)
+	user, err := s.repo.Insert(username, hashedPassword, name, location)
 	if err != nil {
 		return nil, err
 	}
