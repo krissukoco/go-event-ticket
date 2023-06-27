@@ -39,7 +39,6 @@ type Service interface {
 	Login(ctx context.Context, username, password string) (*loginData, error)
 	Register(ctx context.Context, in *registerData) (string, error)
 	Account(ctx context.Context, userId string) (*models.User, error)
-	UserIdFromToken(token string) (string, error)
 }
 
 type service struct {
@@ -72,51 +71,6 @@ func (s *service) generateToken(userId string) (string, error) {
 	}
 
 	return token, nil
-}
-
-func (s *service) UserIdFromToken(token string) (string, error) {
-	t, err := jwt.Parse(token, func(t *jwt.Token) (interface{}, error) {
-		return []byte(s.jwtSecret), nil
-	})
-	if err != nil {
-		return "", err
-	}
-
-	// Validate expiry
-	if !t.Valid {
-		return "", ErrInvalidToken
-	}
-	exp, err := t.Claims.GetExpirationTime()
-	if err != nil {
-		return "", ErrInvalidToken
-	}
-	if exp.Before(time.Now()) {
-		return "", ErrExpiredToken
-	}
-	iss, err := t.Claims.GetIssuer()
-	if err != nil {
-		return "", ErrInvalidToken
-	}
-	if iss != issuer {
-		return "", ErrInvalidToken
-	}
-	aud, err := t.Claims.GetAudience()
-	if err != nil {
-		return "", ErrInvalidToken
-	}
-	if len(aud) == 0 {
-		return "", ErrInvalidToken
-	}
-	if aud[0] != audiences[0] {
-		return "", ErrInvalidToken
-	}
-
-	userId, err := t.Claims.GetSubject()
-	if err != nil {
-		return "", ErrInvalidToken
-	}
-
-	return userId, nil
 }
 
 func (s *service) Login(ctx context.Context, username, password string) (*loginData, error) {

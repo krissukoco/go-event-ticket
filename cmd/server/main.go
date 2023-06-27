@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"strconv"
@@ -18,11 +17,6 @@ const (
 	defaultJwtExp = 24 * 30
 )
 
-type Server struct {
-	Port int
-	Pg   *sql.DB
-}
-
 func getPort() int {
 	portStr, exists := os.LookupEnv("PORT")
 	if !exists {
@@ -33,14 +27,6 @@ func getPort() int {
 		return defaultPort
 	}
 	return port
-}
-
-func getJwtSecret() (string, error) {
-	secret, exists := os.LookupEnv("JWT_SECRET")
-	if !exists {
-		return "", fmt.Errorf("JWT_SECRET env not set")
-	}
-	return secret, nil
 }
 
 func main() {
@@ -69,14 +55,19 @@ func main() {
 
 	// Services
 	userService := user.NewService(user.NewRepository(db))
+	authService := auth.NewService(userService, cfg.JwtSecret, defaultJwtExp)
+	// Middlewares
+	authMiddleware := auth.AuthMiddleware(cfg.JwtSecret, "userId")
 
 	// Auth routes
-	authService := auth.NewService(userService, cfg.JwtSecret, defaultJwtExp)
-	authMiddleware := auth.AuthMiddleware(authService.UserIdFromToken)
-	auth.RegisterHandlers(v1.Group("/auth"), authService, authMiddleware)
+	{
+		authCtl := auth.NewController(authService, userService)
+		authCtl.RegisterHandlers(v1.Group("/auth"))
+	}
 	// User routes
 	{
-		user.RegisterHandlers(v1.Group("/users"), userService)
+		userCtl := user.NewController(userService, authMiddleware)
+		userCtl.RegisterHandlers(v1.Group("/users"))
 	}
 
 	router.Run(fmt.Sprintf(":%d", port))

@@ -3,7 +3,6 @@ package user
 import (
 	"errors"
 
-	"github.com/gin-gonic/gin"
 	"github.com/krissukoco/go-event-ticket/internal/models"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -23,22 +22,6 @@ var (
 
 type service struct {
 	repo Repository
-}
-
-func RegisterHandlers(group *gin.RouterGroup, svc Service) {
-	group.GET("/users/:id", getUser(svc))
-}
-
-func getUser(svc Service) gin.HandlerFunc {
-	return func(c *gin.Context) {
-		id := c.Param("id")
-		user, err := svc.GetById(id)
-		if err != nil {
-			c.JSON(400, gin.H{"message": err.Error()})
-			return
-		}
-		c.JSON(200, user)
-	}
 }
 
 func NewService(repo Repository) Service {
