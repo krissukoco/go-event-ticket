@@ -68,20 +68,3 @@ func (ctl *controller) register(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{"id": r})
 }
-
-// func account(service Service) gin.HandlerFunc {
-// 	return func(c *gin.Context) {
-// 		userId := c.GetString("userId")
-// 		if userId == "" {
-// 			// as the middleware auth is not used
-// 			c.JSON(500, gin.H{"message": "internal server error"})
-// 			return
-// 		}
-// 		r, err := service.Account(c.Request.Context(), userId)
-// 		if err != nil {
-// 			c.JSON(400, gin.H{"message": err.Error()})
-// 			return
-// 		}
-// 		c.JSON(200, r)
-// 	}
-// }

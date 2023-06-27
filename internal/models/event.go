@@ -1,6 +1,4 @@
-package event
-
-import "database/sql"
+package models
 
 // Event represents an event entity in the database
 type Event struct {
@@ -41,23 +39,4 @@ type EventTicket struct {
 	// CreatedAt and UpdatedAt are in milliseconds
 	CreatedAt int64 `json:"created_at"`
 	UpdatedAt int64 `json:"updated_at"`
-}
-
-func MigrateEvents(db *sql.DB) error {
-	q := `CREATE TABLE IF NOT EXISTS events (
-		id TEXT PRIMARY KEY,
-		title TEXT NOT NULL,
-		description TEXT,
-		start_time BIGINT NOT NULL,
-		end_time BIGINT NOT NULL,
-		start TEXT NOT NULL,
-		end TEXT NOT NULL,
-		timezone TEXT NOT NULL,
-		location_id TEXT NOT NULL,
-		creator_id TEXT NOT NULL,
-		created_at BIGINT NOT NULL,
-		updated_at BIGINT NOT NULL
-	);`
-	_, err := db.Exec(q)
-	return err
 }

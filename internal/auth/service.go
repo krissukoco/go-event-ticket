@@ -74,7 +74,7 @@ func (s *service) generateToken(userId string) (string, error) {
 }
 
 func (s *service) Login(ctx context.Context, username, password string) (*loginData, error) {
-	user, err := s.userService.GetByUsername(username)
+	user, err := s.userService.GetByUsername(ctx, username)
 	if err != nil {
 		return nil, err
 	}
@@ -93,12 +93,12 @@ func (s *service) Login(ctx context.Context, username, password string) (*loginD
 
 func (s *service) Register(ctx context.Context, in *registerData) (string, error) {
 	// Check if username already exist
-	_, err := s.userService.GetByUsername(in.Username)
+	_, err := s.userService.GetByUsername(ctx, in.Username)
 	if err == nil {
 		return "", ErrUsernameAlreadyExists
 	}
 
-	user, err := s.userService.Insert(in.Username, in.Password, in.Name, in.Location)
+	user, err := s.userService.Insert(ctx, in.Username, in.Password, in.Name, in.Location)
 	if err != nil {
 		return "", err
 	}
@@ -107,7 +107,7 @@ func (s *service) Register(ctx context.Context, in *registerData) (string, error
 }
 
 func (s *service) Account(ctx context.Context, userId string) (*models.User, error) {
-	user, err := s.userService.GetById(userId)
+	user, err := s.userService.GetById(ctx, userId)
 	if err != nil {
 		return nil, err
 	}

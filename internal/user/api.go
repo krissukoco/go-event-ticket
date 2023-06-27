@@ -18,7 +18,7 @@ func (ctl *controller) RegisterHandlers(group *gin.RouterGroup) {
 
 func (ctl *controller) getUser(c *gin.Context) {
 	id := c.Param("id")
-	user, err := ctl.service.GetById(id)
+	user, err := ctl.service.GetById(c.Request.Context(), id)
 	if err != nil {
 		c.JSON(400, gin.H{"message": err.Error()})
 		return
@@ -27,7 +27,7 @@ func (ctl *controller) getUser(c *gin.Context) {
 }
 
 func (ctl *controller) getAccount(c *gin.Context) {
-	user, err := ctl.service.GetById(c.GetString("userId"))
+	user, err := ctl.service.GetById(c.Request.Context(), c.GetString("userId"))
 	if err != nil {
 		c.JSON(400, gin.H{"message": err.Error()})
 		return
